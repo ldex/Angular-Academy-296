@@ -1,31 +1,52 @@
 import { Injectable } from '@angular/core';
 import { Product } from '../products/product.interface';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError, catchError, delay, shareReplay, tap, map } from 'rxjs';
+import {
+  Observable,
+  throwError,
+  catchError,
+  delay,
+  shareReplay,
+  tap,
+  map,
+} from 'rxjs';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ProductService {
-
   private baseUrl = 'https://storerestservice.azurewebsites.net/api/products/';
   products$: Observable<Product[]>;
 
-  constructor(
-    private http: HttpClient
-  ) {
+  constructor(private http: HttpClient) {
     this.initProducts();
-   }
+  }
+
+  deleteProduct(id: number | undefined): Observable<any> {
+    return this.http.delete(this.baseUrl + id);
+  }
+
+  insertProduct(newProduct: Product): Observable<Product> {
+    return this.http.post<Product>(this.baseUrl, newProduct);
+  }
+
+  getProductById(id: number): Observable<Product> {
+    return this.products$.pipe(
+      map((products) => products.find((product) => product.id == id))
+    );
+  }
 
   initProducts() {
-    this.products$ = this
-                        .http
-                        .get<Product[]>(this.baseUrl)
-                        .pipe(
-                          delay(1500),
-                          tap(console.table),
-                          catchError(this.handleError)
-                        );
+    let url:string = this.baseUrl + '?$orderby=ModifiedDate%20desc';
+
+    this.products$ = this.http
+      .get<Product[]>(url)
+      .pipe(
+        delay(1500),
+        //tap(console.table),
+        shareReplay(),
+        catchError(this.handleError)
+      );
   }
 
   private handleError(error: HttpErrorResponse) {
